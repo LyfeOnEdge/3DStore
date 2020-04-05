@@ -1,8 +1,9 @@
-import traceback
+import platform, traceback
 import tkinter as tk
 from PIL import Image, ImageTk
 import style
 from .widgets import themedFrame, themedLabel, Button, ScrolledThemedText
+from settings_tool import settings
 
 class DetailsPage(tk.Toplevel):
 	def __init__(self, app, package_handler, package):
@@ -11,6 +12,21 @@ class DetailsPage(tk.Toplevel):
 		self.wm_title(f"Details: {name}")
 		self.minsize(500, 300)
 		self.image = None
+		self.fullScreenState = False
+		self.zoomedScreenState = False
+		self.topmostScreenState = False
+
+		if settings.get_setting("Details windows full screen"):
+			if platform.system() == 'Windows':
+				try:
+					self.statepages("fullscreen")
+				except Exception as e:
+					print("Error setting window launch type for Windows, this is a bug please report it:\n     {}".format(e))
+			else:
+				self.attributes("-fullscreen", True)
+
+		if settings.get_setting("Details windows on top"):
+			self.attributes("-topmost", True)
 
 		self.app = app
 		self.package_handler = package_handler
@@ -90,9 +106,9 @@ class DetailsPage(tk.Toplevel):
 			)
 		self.column_exit_button.place(rely=1,relwidth = 1, x = + style.STANDARD_OFFSET, y = - 1 * (style.BUTTONSIZE + style.STANDARD_OFFSET), width = - 2 * style.STANDARD_OFFSET, height = style.BUTTONSIZE)
 
-		# self.progress_bar = progressFrame.ProgressFrame(self)
-
-		# self.yesnoPage = YesNoPage(self)
+		self.bind("<F9>", self.toggle_topmost_screen)
+		self.bind("<F10>", self.toggle_zoomed_screen)
+		self.bind("<F11>", self.toggle_full_screen)
 		self.bind("<Escape>", self.exit_window)
 
 		self.app.threader.do_async(self.update_page, [package])
@@ -182,6 +198,18 @@ class DetailsPage(tk.Toplevel):
 
 	def place_back_button(self):
 		self.back_button.place(rely=1,relwidth = 1, x = + 2 * style.STANDARD_OFFSET, y = - 1 * (style.BUTTONSIZE + style.STANDARD_OFFSET), width = - 4 * style.STANDARD_OFFSET, height = style.BUTTONSIZE)
+
+	def toggle_topmost_screen(self, event):
+		self.topmostScreenState = not self.topmostScreenState
+		self.attributes("-topmost", self.topmostScreenState)
+		
+	def toggle_zoomed_screen(self, event):
+		self.zoomedScreenState = not self.zoomedScreenState
+		self.attributes("-zoomed", self.zoomedScreenState)
+
+	def toggle_full_screen(self, event):
+		self.fullScreenState = not self.fullScreenState
+		self.attributes("-fullscreen", self.fullScreenState)
 
 	def exit_window(self, event = None):
 		self.destroy()

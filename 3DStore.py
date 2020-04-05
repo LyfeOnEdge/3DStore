@@ -18,11 +18,12 @@ import os, sys, json, platform, subprocess, threading
 import tkinter as tk
 import tkinter.filedialog as tkfiledialog
 import importlib.util
+import webhandler, style
+from lib3DS import lib3DSStore
 import gui.widgets as widgets
 from gui.categoryPage import CategoryPage
 from gui.settingsPage import SettingsPage
-import webhandler, style
-from lib3DS import lib3DSStore
+from gui.installerPage import InstallerPage
 from settings_tool import settings
 
 settings.set_file("settings.json")
@@ -69,6 +70,18 @@ class gui(tk.Tk):
 		self.minsize(600, 400)
 		self.threader = threader
 		self.installer = None
+		self.fullScreenState = False
+		self.zoomedScreenState = False
+		self.topmostScreenState = False
+
+		if settings.get_setting("Launch Fullscreen"):
+			if platform.system() == 'Windows':
+				try:
+					self.statepages("fullscreen")
+				except Exception as e:
+					print("Error setting window launch type for Windows, this is a bug please report it:\n     {}".format(e))
+			else:
+				self.attributes("-fullscreen", True)
 
 		repo_file = webhandler.getJson("3DS", REPO_JSON)
 
@@ -116,10 +129,11 @@ class gui(tk.Tk):
 		advanced_frame = CategoryPage(self, self.container, "Advanced", self.handler.advanced)
 		misc_frame = CategoryPage(self, self.container, "Misc.", self.handler.misc)
 		settings_frame = SettingsPage(self, self.container)
+		installer_frame = InstallerPage(self, self.container)
 
 		with open("gui/help.md") as h: helptext = h.read()
 		help_frame = widgets.textPage(self.container, "HELP", helptext)
-		frames = [all_frame, tools_frame, emus_frame, games_frame, advanced_frame, misc_frame, help_frame, settings_frame]
+		frames = [all_frame, tools_frame, emus_frame, games_frame, advanced_frame, misc_frame, installer_frame, help_frame, settings_frame]
 
 		self.frames = {}
 		for f in frames:
@@ -130,6 +144,10 @@ class gui(tk.Tk):
 		self.category_listbox.select_set(0)
 
 		self.frames["All"].tkraise()
+
+		self.bind("<F9>", self.toggle_topmost_screen)
+		self.bind("<F10>", self.toggle_zoomed_screen)
+		self.bind("<F11>", self.toggle_full_screen)
 
 	def select_frame(self, event = None):
 		try:
@@ -153,7 +171,7 @@ class gui(tk.Tk):
 			self.category_listbox.insert("end", " {}".format(page_name))
 
 
-	def install(self, package: dict, percent_handle): #percent_handle is function to pass to progress bar etc 
+	def install(self, package: dict, percent_handler): #percent_handle is function to pass to progress bar etc 
 		"""Install libget-style 3ds package, install cia specified in "binary" value directly to the sd card."""
 
 		# Todo: make sure only one instance of the same package can be being installed at a time
@@ -188,38 +206,72 @@ class gui(tk.Tk):
 					self.output_to_console("[USER MESSAGE]: - boot9.bin path not set, can't continue, set it in the settings menu.")
 					return "boot9.bin path not set, can't continue."
 
-				if not self.installer:
-					installscriptpath = os.path.join(os.path.dirname(__file__),"custominstall/custominstall.py")
-					try:
-						spec = importlib.util.spec_from_file_location("installer", installscriptpath)
-						m = importlib.util.module_from_spec(spec)
-						spec.loader.exec_module(m)
-						self.installer = m.CustomInstall
-					except Exception as e:
-						self.output_to_console(f"[PACKAGE INSTALLER]: ERROR - Failed to init installer object - {e}")
-						return 
+			self.install_files([status])
 
-				installer = self.installer(boot9_path, sed_path, [status], sd_path, False)
+			# Todo: Figure out how to clean up cias since the installer starts its own 
+			# thread and (grumble grumble bitch-whine-moan) this means I can't wait
+			# for it to be done by my normal means to clean up the cia after.
 
-				def log_handle(msg, end='\n'):
-					self.output_to_console(f"[PACKAGE INSTALLER]: {title} - {msg}")
-				
-				def percent_handle(total_percent, total_read, size):
-					installer.log(f' {total_percent:>5.1f}%  {total_read:>.1f} MiB / {size:.1f} MiB\r', end='')
+	def install_files(self, files: list): #percent_handle is function to pass to progress bar etc 
+		"""Install libget-style 3ds package, install cia specified in "binary" value directly to the sd card."""
 
-				installer.event.on_log_msg += log_handle
-				installer.event.update_percentage += percent_handle
+		# Todo: make sure only one instance of the same package can be being installed at a time
+			
+		sd_path = self.sd_box.get()
+		if not sd_path:
+			self.output_to_console("[USER MESSAGE]: - SD path not set, can't continue.")
+			return "SD path not set, can't continue."
 
-				installer.start()
+		sed_path = settings.get_setting("movable_path")
+		if not sed_path:
+			self.output_to_console("[USER MESSAGE]: - movable.sed path not set, can't continue, set it in the settings menu.")
+			return "movable.sed path not set, can't continue."
 
-				# Todo: Figure out how to clean up cias since the installer starts its own 
-				# thread and (grumble grumble bitch-whine-moan) this means I can't wait
-				# for it to be done by my normal means to clean up the cia after.
+		boot9_path = settings.get_setting("boot9_path")
+		if not boot9_path:
+			self.output_to_console("[USER MESSAGE]: - boot9.bin path not set, can't continue, set it in the settings menu.")
+			return "boot9.bin path not set, can't continue."
+
+		if not self.installer:
+			installscriptpath = os.path.join(os.path.dirname(__file__),"custominstall/custominstall.py")
+			try:
+				spec = importlib.util.spec_from_file_location("installer", installscriptpath)
+				m = importlib.util.module_from_spec(spec)
+				spec.loader.exec_module(m)
+				self.installer = m.CustomInstall
+			except Exception as e:
+				self.output_to_console(f"[PACKAGE INSTALLER]: ERROR - Failed to init installer object - {e}")
+				return 
+
+		installer = self.installer(boot9_path, sed_path, files, sd_path, False)
+
+		def log_handle(msg, end='\n'):
+			self.output_to_console(f"[PACKAGE INSTALLER]: {title} - {msg}")
+		
+		def percent_handle(total_percent, total_read, size):
+			installer.log(f' {total_percent:>5.1f}%  {total_read:>.1f} MiB / {size:.1f} MiB\r', end='')
+
+		installer.event.on_log_msg += log_handle
+		installer.event.update_percentage += percent_handle
+
+		installer.start()
 
 	def output_to_console(self, outstring):
 		print(outstring)
 		self.console.insert('end', str(outstring) + "\n")
 		self.console.see('end')
+
+	def toggle_topmost_screen(self, event):
+		self.topmostScreenState = not self.topmostScreenState
+		self.attributes("-topmost", self.topmostScreenState)
+		
+	def toggle_zoomed_screen(self, event):
+		self.zoomedScreenState = not self.zoomedScreenState
+		self.attributes("-zoomed", self.zoomedScreenState)
+
+	def toggle_full_screen(self, event):
+		self.fullScreenState = not self.fullScreenState
+		self.attributes("-fullscreen", self.fullScreenState)
 
 if __name__ == "__main__":
 	app = gui(threader_object())
