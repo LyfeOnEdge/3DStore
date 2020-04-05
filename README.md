@@ -16,7 +16,7 @@ After installation you must run custom-install-finalize in cfw on the 3DS to fin
 custom-install-finalize installs a ticket, plus a seed if required. This is required for the title to appear and function.
 
 #### Features:
-- Download and install cias directly to the SD card
+- Download and install homebrew cias directly to the SD card
 - Tool to install local cias
 
 #### Requirements:
