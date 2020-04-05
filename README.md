@@ -12,7 +12,7 @@ A 3DS homebrew installer based on [custominstall.py](https://github.com/ihaveama
 
 This app is a cross-platform gui written in python for installing 3DS homebrew packages from a libget repository. If the package contains a cia and you have set up 3DStore to install cias the cia will automatically be installed to the SD card using custom-install.py
 
-After installation you must run custom-install-finalize in cfw on the 3DS to finalize the installation of any cias.
+After installing a cia you must run custom-install-finalize in cfw on the 3DS to finalize the installation of any cias.
 custom-install-finalize installs a ticket, plus a seed if required. This is required for the title to appear and function.
 
 #### Features:
