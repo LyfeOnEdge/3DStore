@@ -10,11 +10,14 @@
 
 A 3DS homebrew installer based on [custominstall.py](https://github.com/ihaveamac/custom-install/tree/module-rewrite) by ihaveamac.
 
-Downloads and installs packages from a libget repository. If the package contains a cia and the user has set up 3DS up to install cias the cia will automatically be installed to the SD card using custom-install.py
+This app is a cross-platform gui written in python for installing 3DS homebrew packages from a libget repository. If the package contains a cia and you have set up 3DStore to install cias the cia will automatically be installed to the SD card using custom-install.py
+
+After installation you must run custom-install-finalize in cfw on the 3DS to finalize the installation of any cias.
+custom-install-finalize installs a ticket, plus a seed if required. This is required for the title to appear and function.
 
 #### Features:
 - Download and install cias directly to the SD card
-- Tool to install local cias as well
+- Tool to install local cias
 
 #### Requirements:
     Works on: macOS, Windows, Linux
@@ -41,17 +44,11 @@ Downloads and installs packages from a libget repository. If the package contain
 - Extract 3DStore.zip
 - Navigate to the directory in a terminal
 - Type ```python3 -m pip install --user -r requirements.txt``` to install dependencies
-- Type `python 3DStore.py`
-  - If you are missing dependencies do the following:
+- Linux systems need packages not installed with python in order to function:
   - Ubuntu/Debian: sudo apt install python3 python3-pip python3-tk python3-pil.imagetk
   - Manjaro/Arch: sudo pacman -S python3 python-pip tk python-pillow
 - Linux users must build [wwylele/save3ds](https://github.com/wwylele/save3ds) and place `save3ds_fuse` in `bin/linux`. Just install [rust using rustup](https://www.rust-lang.org/tools/install), then compile with: `cargo build`. Your compiled binary is located in `target/debug/save3ds_fuse`, copy it to `bin/linux`.
-- Finally type `python3 3DStore.py` or run the included shell script.
-
-## custom-install-finalize
-custom-install-finalize installs a ticket, plus a seed if required. This is required for the title to appear and function.
-
-This can be built as most 3DS homebrew projects [with devkitARM](https://www.3dbrew.org/wiki/Setting_up_Development_Environment).
+- Finally type `python3 3DStore.py` or run the included shell script to start the app.
 
 ## License/Credits
 #### custom-install
