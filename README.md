@@ -1,6 +1,6 @@
-# 3DShop
+# 3DStore
 
-[![3DShop](https://github.com/LyfeOnEdge/3DStore/blob/master/docu/main.png?raw=true)]()
+[![3DStore](https://github.com/LyfeOnEdge/3DStore/blob/master/docu/main.png?raw=true)]()
 
 [![License](https://img.shields.io/badge/License-GPLv3-blue.svg)]() [![Releases](https://img.shields.io/github/downloads/LyfeOnEdge/3DStore/total.svg)]() [![LatestVer](https://img.shields.io/github/release-pre/LyfeOnEdge/3DStore.svg)]() 
 
