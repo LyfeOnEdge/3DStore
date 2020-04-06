@@ -2,10 +2,24 @@
 #Copyright LyfeOnEdge 2019, 2020
 #Licensed under GPL3
 import json
+
+
+
+LIBGET = "libget"
+
+TINYDB = "tinydb"
+TINYDB_CATEGORY_MAP = {
+	1 : "All",
+	3 : "Save Tools",
+	4 : "Games"
+}
+
+
 class Parser(object):
 	def __init__(self, out):
 		"""Python object to hold appstore repo"""
 		self.out = out
+		self.mode = None
 		self.init()
 
 	def init(self):
@@ -23,9 +37,11 @@ class Parser(object):
 			"advanced" : self.advanced,
 			"concept" : self.misc,
 			"emu" : self.emus,
+			"Games" : self.games,
 			"game" : self.games,
 			"loader" : self.loaders,
 			"theme" : self.themes,
+			"Save Tools" : self.tools,
 			"tool" : self.tools,
 			"_misc" : self.misc,
 			"media" : self.misc,
@@ -38,26 +54,25 @@ class Parser(object):
 		self.init()
 		
 	def load_file(self, repo_json):
-		""""Loads libget json file as a large list of dicts"""
+		""""Loads json file as a large list of dicts"""
 		if not repo_json:
 			return
-		self.clear()
-		try:
-			with open(repo_json, encoding="utf-8") as repojson:
-				self.all = json.load(repojson)["packages"]
-			self.sort()
-		except Exception as e:
-			self.out(f"Exception loading repo json {e}")
-		num_entries = len(self.all)
-		self.out(f"Loaded {num_entries} packages")
 
-	def load_json(self, repo_json):
-		""""Loads libget json object as a large list of dicts"""
-		if not repo_json:
-			return
-		self.clear()
-		self.all = repo_json["packages"]
+		# try:
+		with open(repo_json, encoding="utf-8") as repojson:
+			j = json.load(repojson)
+			if "packages" in j:
+				self.mode = LIBGET
+				self.clear()
+				self.all = j["packages"]
+			else:
+				self.mode = TINYDB
+				self.clear()
+				self.all = j
+
 		self.sort()
+		# except Exception as e:
+		# 	self.out(f"Exception loading repo json {e}")
 		num_entries = len(self.all)
 		self.out(f"Loaded {num_entries} packages")
 
@@ -81,12 +96,48 @@ class Parser(object):
 			if package["title"] == package_title:
 				return package 
 
+
 	def sort(self):
 		"""sorts list into smaller chunks by category"""
-		if self.all:
-			for entry in self.all:
-				try:
-					self.map[entry["category"]].append(entry)
-				except Exception as e:
-					pkg = entry["name"]
-					self.out(f"Error sorting {pkg} - {e}")
+		if self.mode == LIBGET:
+			if self.all:
+				for entry in self.all:
+					try:
+						entry["type"] = LIBGET
+						self.map[entry["category"]].append(entry)
+					except Exception as e:
+						pkg = entry["name"]
+						self.out(f"Error sorting {pkg} - {e}")
+		elif self.mode == TINYDB:
+			if self.all:
+				al = self.all.copy()
+				self.all = []
+				for entry in al:
+					p = {}
+					p["name"] = entry["name"]
+					p["title"] = entry["name"]
+					p["author"] = entry["author"]
+					p["description"] = entry["headline"]
+					p["details"] = entry["headline"]
+					p["category"] = TINYDB_CATEGORY_MAP.get(max(entry["categories"]))
+					p["type"] = TINYDB
+
+					for c in reversed(entry["cia"]):
+						cia = c
+						break
+					p["download_url"] = cia["download_url"]
+					p["version"] = cia["version"]
+					p["updated"] = cia["mtime"]
+					p["titleid"] = cia["titleid"]
+					p["license"] = "n/a"
+					p["id"] = entry["id"]
+					p["vid"] = cia["id"]
+
+					try:
+						if not p["category"] == "All":
+							self.map[p["category"]].append(p)
+					except Exception as e:
+						p = entry["name"]
+						self.out(f"Error sorting {p} - {e}")
+
+					self.all.append(p)

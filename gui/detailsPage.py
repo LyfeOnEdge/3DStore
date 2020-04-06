@@ -151,7 +151,7 @@ class DetailsPage(tk.Toplevel):
 		if self.banner_locked: return
 		self.banner_locked = True
 		if not self.image:
-			bannerimage = self.package_handler.getScreenImage(self.package["name"])
+			bannerimage = self.package_handler.getScreenImage(self.package)
 			if not bannerimage:
 				bannerimage = "gui/notfound.png"
 
@@ -187,8 +187,9 @@ class DetailsPage(tk.Toplevel):
 			status = self.app.install(self.package, self.progress_label.set)
 		except Exception as e:
 			status = traceback.format_exc()
-		if "path not set" in status:
-			self.place_back_button()
+		if status:
+			if "path not set" in status:
+				self.place_back_button()
 		self.progress_label.set(f"Install Status -\n\n{status}")
 
 	def on_back_button(self):

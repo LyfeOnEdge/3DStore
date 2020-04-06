@@ -72,3 +72,5 @@ oreo639 - Tester
 LORD OF CBT - Tester
 
 JBMagination -Tester
+
+piepie62 - Knowledgable about the 3DS

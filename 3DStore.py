@@ -83,8 +83,6 @@ class gui(tk.Tk):
 			else:
 				self.attributes("-fullscreen", True)
 
-		repo_file = webhandler.getJson("3DS", REPO_JSON)
-
 		self.f = widgets.themedFrame(self)
 		self.f.place(relwidth = 1, relheight = 1)
 
@@ -102,6 +100,15 @@ class gui(tk.Tk):
 		console_label.place(relwidth = 1, height = 20)
 		self.console = widgets.ScrolledText(console_frame, background = "black", foreground = "white", highlightthickness = 0)
 		self.console.place(relwidth = 1, relheight = 1, y = 20, height = - 20)
+
+		repo_types = ["/repo.json", "/api/apps"]
+		for t in repo_types:
+			repo_json = REPO_URL.strip("/") + t
+			repo_file = webhandler.getJson("3DS", repo_json)
+			if repo_file:
+				break
+		if not repo_file:
+			raise ValueError("Failed to download repository json.")
 
 		self.handler = lib3DSStore(self.output_to_console, REPO_URL, repo_file)
 
@@ -122,18 +129,29 @@ class gui(tk.Tk):
 		self.container = widgets.themedFrame(list_frame)
 		self.container.place(x = style.sidecolumnwidth, width = - style.sidecolumnwidth, relwidth = 1, relheight = 1)
 
-		all_frame = CategoryPage(self, self.container, "All", self.handler.all)
-		tools_frame = CategoryPage(self, self.container, "Tools", self.handler.tools)
-		emus_frame = CategoryPage(self, self.container, "Emulators", self.handler.emus)
-		games_frame = CategoryPage(self, self.container, "Games", self.handler.games)
-		advanced_frame = CategoryPage(self, self.container, "Advanced", self.handler.advanced)
-		misc_frame = CategoryPage(self, self.container, "Misc.", self.handler.misc)
+		frames = []
+
+		category_pages = {
+			"All" : self.handler.all,
+			"Tools" : self.handler.tools,
+			"Emulators" : self.handler.emus,
+			"Games" : self.handler.games,
+			"Advanced" : self.handler.advanced,
+			"Misc." : self.handler.misc,
+		}
+
+		for frame in category_pages:
+			if category_pages[frame]:
+				f = CategoryPage(self, self.container, frame, category_pages[frame])
+				frames.append(f)
+
 		settings_frame = SettingsPage(self, self.container)
 		installer_frame = InstallerPage(self, self.container)
 
 		with open("gui/help.md") as h: helptext = h.read()
 		help_frame = widgets.textPage(self.container, "HELP", helptext)
-		frames = [all_frame, tools_frame, emus_frame, games_frame, advanced_frame, misc_frame, installer_frame, help_frame, settings_frame]
+
+		frames.extend([installer_frame, help_frame, settings_frame])
 
 		self.frames = {}
 		for f in frames:
@@ -206,7 +224,7 @@ class gui(tk.Tk):
 					self.output_to_console("[USER MESSAGE]: - boot9.bin path not set, can't continue, set it in the settings menu.")
 					return "boot9.bin path not set, can't continue."
 
-			self.install_files([status])
+			return self.install_files([status])
 
 			# Todo: Figure out how to clean up cias since the installer starts its own 
 			# thread and (grumble grumble bitch-whine-moan) this means I can't wait
