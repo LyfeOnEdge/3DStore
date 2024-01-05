@@ -1,4 +1,4 @@
 pillow
-pycryptodomex==3.9.4
+pycryptodomex==3.19.1
 events==0.3
 pyctr==0.1.0
